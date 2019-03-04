@@ -5,6 +5,7 @@ struct Xattr {
   /** Error type */
   struct Error: Swift.Error {
 
+    // todo: at the time of calling this property the `errno` could be lost already. instead need to store error code.
     let localizedDescription = String(utf8String: strerror(errno))
   }
 
@@ -44,8 +45,10 @@ struct Xattr {
 
     let bufLength = getxattr(path, name, nil, 0, 0, 0)
 
+    // todo: memory leak `buf` in case of `getxattr` fail. Unsafe pointers are not under ARC or something.
     guard bufLength != -1, let buf = malloc(bufLength), getxattr(path, name, buf, bufLength, 0, 0) != -1 else { throw Error() }
 
+    // todo: memory leak `buf`: `Data` just copies buffer - it doesn't owns or releases buf.
     return Data(bytes: buf, count: bufLength)
   }
 
@@ -61,6 +64,7 @@ struct Xattr {
 
     guard bufLength != -1 else { throw Error() }
 
+    // todo: memory leak of `buf` - below `NSString` just copies bytes.
     let buf = UnsafeMutablePointer<Int8>.allocate(capacity: bufLength)
 
     guard listxattr(path, buf, bufLength, 0) != -1 else { throw Error() }
